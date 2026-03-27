@@ -10,189 +10,197 @@ import io
 import os
 import requests
 
-# 🔧 Patch Dense.from_config to ignore quantization_config
+# 🔧 Fix for keras config issue
+
 from tensorflow.keras.layers import Dense
 _original_dense_from_config = Dense.from_config
 
 @classmethod
 def _dense_from_config(cls, config):
-    config.pop('quantization_config', None)
-    return _original_dense_from_config(config)
+config.pop('quantization_config', None)
+return _original_dense_from_config(config)
 
 Dense.from_config = _dense_from_config
 
-app = Flask(__name__)
+app = Flask(**name**)
 CORS(app)
 
 # =========================
-# 📦 MODEL CONFIG
+
+# 📦 MODEL CONFIG (CLEAN)
+
 # =========================
 
-# 📁 Model directory
-MODEL_DIR = os.path.join(os.path.dirname(__file__), 'model')
+BASE_DIR = os.path.dirname(**file**)
+
+MODEL_DIR = os.path.join(BASE_DIR, "model")
 os.makedirs(MODEL_DIR, exist_ok=True)
 
-# 📦 Final model path (ONE SINGLE PATH)
-MODEL_PATH = os.path.join(MODEL_DIR, 'resnet50_plantvillage_model.keras')
+# ✅ FINAL MODEL PATH (ONLY ONE)
 
-# 🔗 Google Drive link
-MODEL_URL = "https://drive.google.com/uc?id=1jBRqY6xvdzqbMoWO0OWrNEa6GxtSL3cW"
+MODEL_PATH = os.path.join(MODEL_DIR, "resnet50_plantvillage_model.keras")
 
-MODEL_DOWNLOAD_PATH = os.path.join(os.path.dirname(__file__), 'model.keras')
+# 🔗 Google Drive Direct Download Link
+
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1jBRqY6xvdzqbMoWO0OWrNEa6GxtSL3cW"
 
 # =========================
+
 # 📥 DOWNLOAD MODEL
+
 # =========================
+
 def download_model():
-    if not os.path.exists(MODEL_DOWNLOAD_PATH):
-        print("📥 Downloading model...")
+print("📥 Downloading model from Google Drive...")
 
-        import requests
-        session = requests.Session()
+```
+session = requests.Session()
+response = session.get(MODEL_URL, stream=True)
 
-        response = session.get(MODEL_URL, stream=True)
+# Fix for large files
+for key, value in response.cookies.items():
+    if key.startswith('download_warning'):
+        params = {'id': MODEL_URL.split('id=')[1], 'confirm': value}
+        response = session.get(
+            "https://drive.google.com/uc?export=download",
+            params=params,
+            stream=True
+        )
 
-        # Fix for Google Drive large file
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                params = {'id': MODEL_URL.split('id=')[1], 'confirm': value}
-                response = session.get("https://drive.google.com/uc?export=download", params=params, stream=True)
+with open(MODEL_PATH, "wb") as f:
+    for chunk in response.iter_content(32768):
+        if chunk:
+            f.write(chunk)
 
-        with open(MODEL_DOWNLOAD_PATH, "wb") as f:
-            for chunk in response.iter_content(32768):
-                if chunk:
-                    f.write(chunk)
-
-        print("✅ Model downloaded")
+print("✅ Model downloaded successfully!")
+```
 
 # =========================
-# 📦 LOAD MODEL (SMART)
+
+# 📦 LOAD MODEL
+
 # =========================
 
 if not os.path.exists(MODEL_PATH):
-    download_model()
-
-    # 🔥 Move downloaded file to correct location
-    if os.path.exists(MODEL_DOWNLOAD_PATH):
-        os.rename(MODEL_DOWNLOAD_PATH, MODEL_PATH)
+download_model()
 
 print("🚀 Loading model...")
 model = load_model(MODEL_PATH)
 
-
 # 🏷️ Class labels
+
 CLASS_NAMES = [
-    'Bacterial Spot',
-    'Early Blight',
-    'Late Blight',
-    'Leaf Mold',
-    'Septoria Leaf Spot',
-    'Spider Mites',
-    'Target Spot',
-    'Tomato Yellow Leaf Curl Virus',
-    'Tomato Mosaic Virus',
-    'Healthy'
+'Bacterial Spot',
+'Early Blight',
+'Late Blight',
+'Leaf Mold',
+'Septoria Leaf Spot',
+'Spider Mites',
+'Target Spot',
+'Tomato Yellow Leaf Curl Virus',
+'Tomato Mosaic Virus',
+'Healthy'
 ]
 
-
 # 🖼️ Image preprocessing
+
 def preprocess_image(image):
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
+if image.mode != 'RGB':
+image = image.convert('RGB')
 
-    image = image.resize((224, 224))
-    image = img_to_array(image)
-    image = resnet.preprocess_input(image)
-    image = np.expand_dims(image, axis=0)
+```
+image = image.resize((224, 224))
+image = img_to_array(image)
+image = resnet.preprocess_input(image)
+image = np.expand_dims(image, axis=0)
 
-    return image
-
+return image
+```
 
 # 📂 File validation
+
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png'}
+return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png'}
 
+# 🌿 Leaf detection
 
-# 🌿 Leaf detection heuristic
 def is_leaf_like(image):
-    rgb_image = image.convert('RGB')
-    arr = np.array(rgb_image)
+arr = np.array(image.convert('RGB'))
 
-    r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+```
+r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
 
-    # 🌿 Green detection
-    green_mask = (g > r * 1.1) & (g > b * 1.1) & (g > 70)
-    green_ratio = float(np.mean(green_mask))
+green_mask = (g > r * 1.1) & (g > b * 1.1) & (g > 70)
+green_ratio = float(np.mean(green_mask))
 
-    # 🧠 Texture detection
-    gray = np.mean(arr, axis=2)
-    texture_variance = np.var(gray)
+gray = np.mean(arr, axis=2)
+texture_variance = np.var(gray)
 
-    # 🎯 Final condition
-    is_leaf = (green_ratio > 0.25) and (texture_variance > 500)
+is_leaf = (green_ratio > 0.25) and (texture_variance > 500)
 
-    return is_leaf, green_ratio
+return is_leaf, green_ratio
+```
 
+# =========================
 
-# 🚀 Prediction API
+# 🚀 API
+
+# =========================
+
 @app.route('/predict', methods=['POST'])
 def predict():
 
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
+```
+if 'file' not in request.files:
+    return jsonify({'error': 'No file provided'}), 400
 
-    file = request.files['file']
+file = request.files['file']
 
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
+if file.filename == '':
+    return jsonify({'error': 'No file selected'}), 400
 
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'Only JPG, JPEG, PNG allowed'}), 400
+if not allowed_file(file.filename):
+    return jsonify({'error': 'Only JPG, JPEG, PNG allowed'}), 400
 
-    try:
-        image = Image.open(io.BytesIO(file.read()))
+try:
+    image = Image.open(io.BytesIO(file.read()))
 
-        # 🌿 Leaf check
-        leaf_detected, leaf_score = is_leaf_like(image)
+    leaf_detected, leaf_score = is_leaf_like(image)
 
-        if not leaf_detected:
-            return jsonify({
-                'prediction': 'Not a plant leaf image',
-                'confidence': 0,
-                'leaf_score': leaf_score
-            })
-
-        # 🔄 Preprocess
-        processed_image = preprocess_image(image)
-
-        # 🤖 Predict
-        prediction = model.predict(processed_image)
-        probabilities = tf.nn.softmax(prediction[0]).numpy()
-
-        predicted_class = int(np.argmax(probabilities))
-        confidence = float(probabilities[predicted_class])
-        class_label = CLASS_NAMES[predicted_class]
-
-        # 🎯 Confidence threshold
-        THRESHOLD = 0.7
-
-        if confidence < THRESHOLD:
-            return jsonify({
-                'prediction': 'Uncertain prediction (low confidence)',
-                'confidence': confidence,
-                'leaf_score': leaf_score
-            })
-
+    if not leaf_detected:
         return jsonify({
-            'prediction': class_label,
+            'prediction': 'Not a plant leaf image',
+            'confidence': 0,
+            'leaf_score': leaf_score
+        })
+
+    processed_image = preprocess_image(image)
+
+    prediction = model.predict(processed_image)
+    probabilities = tf.nn.softmax(prediction[0]).numpy()
+
+    predicted_class = int(np.argmax(probabilities))
+    confidence = float(probabilities[predicted_class])
+    class_label = CLASS_NAMES[predicted_class]
+
+    if confidence < 0.7:
+        return jsonify({
+            'prediction': 'Uncertain prediction (low confidence)',
             'confidence': confidence,
             'leaf_score': leaf_score
         })
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return jsonify({
+        'prediction': class_label,
+        'confidence': confidence,
+        'leaf_score': leaf_score
+    })
 
+except Exception as e:
+    return jsonify({'error': str(e)}), 500
+```
 
-# ▶️ Run server (only for local)
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+# ▶️ Run locally
+
+if **name** == '**main**':
+app.run(host='0.0.0.0', port=5000)
