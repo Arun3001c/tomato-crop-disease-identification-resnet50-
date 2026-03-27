@@ -36,37 +36,33 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 MODEL_PATH = os.path.join(MODEL_DIR, 'resnet50_plantvillage_model.keras')
 
 # 🔗 Google Drive link
-MODEL_URL = "https://drive.google.com/uc?export=download&id=1jBRqY6xvdzqbMoWO0OWrNEa6GxtSL3cW"
-
+MODEL_URL = "https://drive.google.com/uc?id=1jBRqY6xvdzqbMoWO0OWrNEa6GxtSL3cW"
 
 # =========================
 # 📥 DOWNLOAD MODEL
 # =========================
 def download_model():
     if not os.path.exists(MODEL_DOWNLOAD_PATH):
-        print("📥 Downloading model from Google Drive (one-time)...")
+        print("📥 Downloading model...")
 
-        try:
-            session = requests.Session()
+        import requests
+        session = requests.Session()
 
-            response = session.get(MODEL_URL, stream=True)
-            
-            # Handle large file confirmation token
-            for key, value in response.cookies.items():
-                if key.startswith('download_warning'):
-                    params = {'id': MODEL_URL.split('id=')[1], 'confirm': value}
-                    response = session.get("https://drive.google.com/uc?export=download", params=params, stream=True)
+        response = session.get(MODEL_URL, stream=True)
 
-            with open(MODEL_DOWNLOAD_PATH, "wb") as f:
-                for chunk in response.iter_content(32768):
-                    if chunk:
-                        f.write(chunk)
+        # Fix for Google Drive large file
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                params = {'id': MODEL_URL.split('id=')[1], 'confirm': value}
+                response = session.get("https://drive.google.com/uc?export=download", params=params, stream=True)
 
-            print("✅ Model downloaded successfully!")
+        with open(MODEL_DOWNLOAD_PATH, "wb") as f:
+            for chunk in response.iter_content(32768):
+                if chunk:
+                    f.write(chunk)
 
-        except Exception as e:
-            print("❌ Model download failed:", e)
-
+        print("✅ Model downloaded")
+        
 # =========================
 # 📦 LOAD MODEL (SMART)
 # =========================
