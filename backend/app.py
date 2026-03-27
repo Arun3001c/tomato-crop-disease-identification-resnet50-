@@ -43,20 +43,29 @@ MODEL_URL = "https://drive.google.com/uc?export=download&id=1jBRqY6xvdzqbMoWO0OW
 # 📥 DOWNLOAD MODEL
 # =========================
 def download_model():
-    print("📥 Downloading model from Google Drive (one-time)...")
-    try:
-        response = requests.get(MODEL_URL, stream=True)
+    if not os.path.exists(MODEL_DOWNLOAD_PATH):
+        print("📥 Downloading model from Google Drive (one-time)...")
 
-        with open(MODEL_PATH, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
+        try:
+            session = requests.Session()
 
-        print("✅ Model downloaded successfully!")
+            response = session.get(MODEL_URL, stream=True)
+            
+            # Handle large file confirmation token
+            for key, value in response.cookies.items():
+                if key.startswith('download_warning'):
+                    params = {'id': MODEL_URL.split('id=')[1], 'confirm': value}
+                    response = session.get("https://drive.google.com/uc?export=download", params=params, stream=True)
 
-    except Exception as e:
-        print("❌ Model download failed:", e)
+            with open(MODEL_DOWNLOAD_PATH, "wb") as f:
+                for chunk in response.iter_content(32768):
+                    if chunk:
+                        f.write(chunk)
 
+            print("✅ Model downloaded successfully!")
+
+        except Exception as e:
+            print("❌ Model download failed:", e)
 
 # =========================
 # 📦 LOAD MODEL (SMART)
