@@ -1,0 +1,108 @@
+/* Full page background */
+body {
+  min-height: 50vh;
+  background-image: url("/images/bg1.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Centering container */
+.container {
+  min-height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Card style */
+.card {
+  background: #fff;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 350px;
+}
+
+/* Title */
+.title {
+  margin-bottom: 10px;
+}
+
+/* Subtitle */
+.subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* File input */
+.fileInput {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-bottom: 10px;
+  transition: background-color 0.3s;
+}
+
+.fileInput:hover {
+  background-color: #45a049;
+}
+
+/* Image preview container */
+.imageWrapper {
+  margin-bottom: 20px;
+}
+
+/* Image preview */
+.image {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+/* Button */
+.button {
+  padding: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  background-color: #28a745;
+  transition: background-color 0.3s ease;
+}
+
+/* Button loading state */
+.button.buttonLoading {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+/* Result box common style */
+.resultBox {
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+/* Success result */
+.resultSuccess {
+  background-color: #e6ffed;
+  color: #2a662a;
+}
+
+/* Error result */
+.resultError {
+  background-color: #ffe6e6;
+  color: #b30000;
+}
