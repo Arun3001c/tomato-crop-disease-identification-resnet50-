@@ -38,6 +38,8 @@ MODEL_PATH = os.path.join(MODEL_DIR, 'resnet50_plantvillage_model.keras')
 # 🔗 Google Drive link
 MODEL_URL = "https://drive.google.com/uc?id=1jBRqY6xvdzqbMoWO0OWrNEa6GxtSL3cW"
 
+MODEL_DOWNLOAD_PATH = os.path.join(os.path.dirname(__file__), 'model.keras')
+
 # =========================
 # 📥 DOWNLOAD MODEL
 # =========================
@@ -62,12 +64,17 @@ def download_model():
                     f.write(chunk)
 
         print("✅ Model downloaded")
-        
+
 # =========================
 # 📦 LOAD MODEL (SMART)
 # =========================
+
 if not os.path.exists(MODEL_PATH):
     download_model()
+
+    # 🔥 Move downloaded file to correct location
+    if os.path.exists(MODEL_DOWNLOAD_PATH):
+        os.rename(MODEL_DOWNLOAD_PATH, MODEL_PATH)
 
 print("🚀 Loading model...")
 model = load_model(MODEL_PATH)
