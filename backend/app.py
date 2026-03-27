@@ -51,13 +51,12 @@ MODEL_URL = "https://drive.google.com/uc?export=download&id=1jBRqY6xvdzqbMoWO0OW
 # =========================
 
 def download_model():
-print("📥 Downloading model from Google Drive...")
+print("📥 Downloading model...")
 
-```
 session = requests.Session()
 response = session.get(MODEL_URL, stream=True)
 
-# Fix for large files
+# Google Drive large file fix
 for key, value in response.cookies.items():
     if key.startswith('download_warning'):
         params = {'id': MODEL_URL.split('id=')[1], 'confirm': value}
@@ -67,13 +66,14 @@ for key, value in response.cookies.items():
             stream=True
         )
 
+# ✅ SAVE DIRECTLY TO MODEL_PATH (IMPORTANT)
 with open(MODEL_PATH, "wb") as f:
     for chunk in response.iter_content(32768):
         if chunk:
             f.write(chunk)
 
-print("✅ Model downloaded successfully!")
-```
+print("✅ Model saved at:", MODEL_PATH)
+
 
 # =========================
 
