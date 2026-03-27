@@ -8,6 +8,7 @@ from PIL import Image
 import numpy as np
 import io
 import os
+import requests
 
 # 🔧 Patch Dense.from_config to ignore quantization_config
 from tensorflow.keras.layers import Dense
@@ -23,12 +24,46 @@ Dense.from_config = _dense_from_config
 app = Flask(__name__)
 CORS(app)
 
-# 📦 Load model
-model_path = os.path.join(os.path.dirname(__file__), 'model', 'resnet50_plantvillage_model.keras')
-if not os.path.exists(model_path):
-    model_path = os.path.join(os.path.dirname(__file__), 'model', 'resnet50_plantvillage_model.h5')
+# =========================
+# 📦 MODEL CONFIG
+# =========================
+MODEL_LOCAL_PATH = os.path.join(os.path.dirname(__file__), 'model', 'resnet50_plantvillage_model.keras')
 
-model = load_model(model_path)
+MODEL_DOWNLOAD_PATH = os.path.join(os.path.dirname(__file__), 'model.keras')
+
+MODEL_URL = "https://drive.google.com/uc?export=download&id=1jBRqY6xvdzqbMoWO0OWrNEa6GxtSL3cW"
+
+
+def download_model():
+    if not os.path.exists(MODEL_DOWNLOAD_PATH):
+        print("📥 Downloading model from Google Drive (one-time)...")
+        try:
+            r = requests.get(MODEL_URL, stream=True)
+            with open(MODEL_DOWNLOAD_PATH, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            print("✅ Model downloaded successfully!")
+        except Exception as e:
+            print("❌ Model download failed:", e)
+
+
+# =========================
+# 📦 LOAD MODEL (SMART)
+# =========================
+if os.path.exists(MODEL_LOCAL_PATH):
+    print("✅ Loading model from local folder...")
+    model = load_model(MODEL_LOCAL_PATH)
+
+elif os.path.exists(MODEL_DOWNLOAD_PATH):
+    print("✅ Loading previously downloaded model...")
+    model = load_model(MODEL_DOWNLOAD_PATH)
+
+else:
+    download_model()
+    print("✅ Loading downloaded model...")
+    model = load_model(MODEL_DOWNLOAD_PATH)
+
 
 # 🏷️ Class labels
 CLASS_NAMES = [
@@ -44,6 +79,7 @@ CLASS_NAMES = [
     'Healthy'
 ]
 
+
 # 🖼️ Image preprocessing
 def preprocess_image(image):
     if image.mode != 'RGB':
@@ -56,9 +92,11 @@ def preprocess_image(image):
 
     return image
 
+
 # 📂 File validation
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'jpg', 'jpeg', 'png'}
+
 
 # 🌿 Leaf detection heuristic
 def is_leaf_like(image):
@@ -71,48 +109,35 @@ def is_leaf_like(image):
     green_mask = (g > r * 1.1) & (g > b * 1.1) & (g > 70)
     green_ratio = float(np.mean(green_mask))
 
-    # 🧠 Texture detection (variance)
+    # 🧠 Texture detection
     gray = np.mean(arr, axis=2)
     texture_variance = np.var(gray)
 
-    # 🎯 Combined condition
+    # 🎯 Final condition
     is_leaf = (green_ratio > 0.25) and (texture_variance > 500)
 
     return is_leaf, green_ratio
-# def is_leaf_like(image):
-#     rgb_image = image.convert('RGB')
-#     arr = np.array(rgb_image)
 
-#     r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
-
-#     green_mask = (g > r * 1.1) & (g > b * 1.1) & (g > 70)
-#     green_ratio = float(np.mean(green_mask))
-
-#     return green_ratio >= 0.25, green_ratio   # 🔥 stricter threshold
 
 # 🚀 Prediction API
 @app.route('/predict', methods=['POST'])
 def predict():
 
-    # ❌ No file
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
 
     file = request.files['file']
 
-    # ❌ No filename
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    # ❌ Invalid type
     if not allowed_file(file.filename):
         return jsonify({'error': 'Only JPG, JPEG, PNG allowed'}), 400
 
     try:
-        # 🖼️ Read image
         image = Image.open(io.BytesIO(file.read()))
 
-        # 🌿 Check if it's leaf-like FIRST
+        # 🌿 Leaf check
         leaf_detected, leaf_score = is_leaf_like(image)
 
         if not leaf_detected:
@@ -143,7 +168,6 @@ def predict():
                 'leaf_score': leaf_score
             })
 
-        # ✅ Final valid prediction
         return jsonify({
             'prediction': class_label,
             'confidence': confidence,
@@ -156,4 +180,4 @@ def predict():
 
 # ▶️ Run server
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
