@@ -27,45 +27,42 @@ CORS(app)
 # =========================
 # 📦 MODEL CONFIG
 # =========================
+MODEL_LOCAL_PATH = os.path.join(os.path.dirname(__file__), 'model', 'resnet50_plantvillage_model.keras')
 
-# 📁 Model directory
-MODEL_DIR = os.path.join(os.path.dirname(__file__), 'model')
-os.makedirs(MODEL_DIR, exist_ok=True)
+MODEL_DOWNLOAD_PATH = os.path.join(os.path.dirname(__file__), 'model.keras')
 
-# 📦 Final model path (ONE SINGLE PATH)
-MODEL_PATH = os.path.join(MODEL_DIR, 'resnet50_plantvillage_model.keras')
-
-# 🔗 Google Drive link
 MODEL_URL = "https://drive.google.com/uc?export=download&id=1jBRqY6xvdzqbMoWO0OWrNEa6GxtSL3cW"
 
 
-# =========================
-# 📥 DOWNLOAD MODEL
-# =========================
 def download_model():
-    print("📥 Downloading model from Google Drive (one-time)...")
-    try:
-        response = requests.get(MODEL_URL, stream=True)
-
-        with open(MODEL_PATH, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-
-        print("✅ Model downloaded successfully!")
-
-    except Exception as e:
-        print("❌ Model download failed:", e)
+    if not os.path.exists(MODEL_DOWNLOAD_PATH):
+        print("📥 Downloading model from Google Drive (one-time)...")
+        try:
+            r = requests.get(MODEL_URL, stream=True)
+            with open(MODEL_DOWNLOAD_PATH, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            print("✅ Model downloaded successfully!")
+        except Exception as e:
+            print("❌ Model download failed:", e)
 
 
 # =========================
 # 📦 LOAD MODEL (SMART)
 # =========================
-if not os.path.exists(MODEL_PATH):
-    download_model()
+if os.path.exists(MODEL_LOCAL_PATH):
+    print("✅ Loading model from local folder...")
+    model = load_model(MODEL_LOCAL_PATH)
 
-print("🚀 Loading model...")
-model = load_model(MODEL_PATH)
+elif os.path.exists(MODEL_DOWNLOAD_PATH):
+    print("✅ Loading previously downloaded model...")
+    model = load_model(MODEL_DOWNLOAD_PATH)
+
+else:
+    download_model()
+    print("✅ Loading downloaded model...")
+    model = load_model(MODEL_DOWNLOAD_PATH)
 
 
 # 🏷️ Class labels
@@ -181,6 +178,6 @@ def predict():
         return jsonify({'error': str(e)}), 500
 
 
-# ▶️ Run server (only for local)
+# ▶️ Run server
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
